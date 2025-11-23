@@ -1,11 +1,10 @@
 use std::{
-    collections::HashMap,
-    path::PathBuf,
-    sync::{Arc, Mutex},
+    collections::HashMap, path::PathBuf, sync::{Arc, Mutex}
 };
 use tokio::sync::mpsc;
 
 use uuid::Uuid;
+use crate::wayland::Output;
 use wayland_client::{protocol::wl_seat, QueueHandle};
 use wayland_protocols::ext::idle_notify::v1::client::{
     ext_idle_notification_v1, ext_idle_notifier_v1,
@@ -32,4 +31,5 @@ pub struct State {
     pub(crate) notification_list: NotificationListHandle,
     pub(crate) tx: mpsc::Sender<Request>,
     pub(crate) config_path: PathBuf,
+    pub(crate) outputs: HashMap<u32, Output>,
 }

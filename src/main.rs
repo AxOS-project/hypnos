@@ -192,12 +192,17 @@ impl WaylandRunner {
         &self,
         mut event_queue: EventQueue<State>,
     ) -> anyhow::Result<JoinHandle<Result<(), anyhow::Error>>> {
+
+        let display = self.connection.display();
+        display.get_registry(&self.qhandle, ());
+
         let mut state = State {
             wl_seat: None,
             idle_notifier: None,
             qh: self.qhandle.clone(),
             notification_list: self.notification_list.clone(),
             tx: self.tx.clone(),
+            outputs: HashMap::new(),
             config_path: self.config_path.clone(),
         };
 

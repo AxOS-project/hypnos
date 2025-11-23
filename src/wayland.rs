@@ -15,11 +15,16 @@ use wayland_protocols::{
     },
     xdg::activation::v1::client::{xdg_activation_token_v1, xdg_activation_v1},
 };
-use wayland_protocols_wlr::gamma_control::v1::client::{
-    zwlr_gamma_control_manager_v1, zwlr_gamma_control_v1,
-};
 
 use crate::{apply_config, types::{State, Request}, INHIBIT_MANAGER, SURFACE};
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct Output {
+    reg_name: u32,
+    wl_output: wl_output::WlOutput,
+    name: Option<String>,
+}
 
 #[derive(Clone, Debug)]
 pub struct NotificationContext {
@@ -71,16 +76,19 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                     let inhibit_manager = registry.bind::<zwp_idle_inhibit_manager_v1::ZwpIdleInhibitManagerV1, _, _>(name, 1, qh, ());
                     *INHIBIT_MANAGER.lock().unwrap() = Some(inhibit_manager);
                 }
-                "zwlr_gamma_control_v1" => {
-                    let _gamma_control = registry.bind::<zwlr_gamma_control_v1::ZwlrGammaControlV1, _, _>(name, 1, qh, ());
-                }
-                "zwlr_gamma_control_manager_v1" => {
-                    let _gamma_control_manager = registry.bind::<zwlr_gamma_control_manager_v1::ZwlrGammaControlManagerV1, _, _>(name, 1, qh, ());
-                }
                 "wl_compositor" => {
                     let compositor = registry.bind::<wl_compositor::WlCompositor, _, _>(name, 1, qh, ());
                     let surface = compositor.create_surface(qh, ());
                     *SURFACE.lock().unwrap() = Some(surface);
+                }
+                "wl_output" => {
+                    let wl_output = registry.bind::<wl_output::WlOutput, _, _>(name, 1, qh, ());
+                    let output = Output {
+                        reg_name: name,
+                        wl_output,
+                        name: None,
+                    };
+                    state.outputs.insert(name, output);
                 }
                 _ => {}
             }
@@ -96,12 +104,6 @@ impl Dispatch<zwp_idle_inhibitor_v1::ZwpIdleInhibitorV1, ()> for State {
 }
 impl Dispatch<zwp_idle_inhibit_manager_v1::ZwpIdleInhibitManagerV1, ()> for State {
     fn event(_: &mut Self, _: &zwp_idle_inhibit_manager_v1::ZwpIdleInhibitManagerV1, _: zwp_idle_inhibit_manager_v1::Event, _: &(), _: &Connection, _qh: &QueueHandle<Self>) {}
-}
-impl Dispatch<zwlr_gamma_control_v1::ZwlrGammaControlV1, ()> for State {
-    fn event(_: &mut Self, _: &zwlr_gamma_control_v1::ZwlrGammaControlV1, _: zwlr_gamma_control_v1::Event, _: &(), _: &Connection, _qh: &QueueHandle<Self>) {}
-}
-impl Dispatch<zwlr_gamma_control_manager_v1::ZwlrGammaControlManagerV1, ()> for State {
-    fn event(_: &mut Self, _: &zwlr_gamma_control_manager_v1::ZwlrGammaControlManagerV1, _: zwlr_gamma_control_manager_v1::Event, _: &(), _: &Connection, _qh: &QueueHandle<Self>) {}
 }
 impl Dispatch<xdg_activation_v1::XdgActivationV1, ()> for State {
     fn event(_: &mut Self, _: &xdg_activation_v1::XdgActivationV1, _: xdg_activation_v1::Event, _: &(), _: &Connection, _qh: &QueueHandle<Self>) {}
