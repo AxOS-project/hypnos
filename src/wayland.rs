@@ -151,7 +151,8 @@ impl Dispatch<ext_idle_notification_v1::ExtIdleNotificationV1, NotificationConte
             ext_idle_notification_v1::Event::Idled => {
                 let map = state.notification_list.lock().unwrap();
 
-                if let Some((command, req_battery, _)) = map.get(&ctx.uuid) {
+                if let Some((command, _, req_battery, _)) = map.get(&ctx.uuid) {
+
                     let current_bat_state = state.globals.lock().unwrap().on_battery;
 
                     if *req_battery && !current_bat_state.unwrap_or(false) {
@@ -164,7 +165,14 @@ impl Dispatch<ext_idle_notification_v1::ExtIdleNotificationV1, NotificationConte
                 }
             }
             ext_idle_notification_v1::Event::Resumed => {
-                debug!("Resumed from idle");
+                let map = state.notification_list.lock().unwrap();
+
+                if let Some((_, Some(restore_cmd), _, _)) = map.get(&ctx.uuid) {
+                    info!("Idle resumed, executing restore command: {}", restore_cmd);
+                    let _ = state.tx.try_send(Request::RunCommand(restore_cmd.clone()));
+                } else {
+                    debug!("No restore command defined for uuid {:?}", ctx.uuid);
+                }
             }
             _ => {}
         }

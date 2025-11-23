@@ -60,6 +60,7 @@ fn ensure_config_file_exists(filename: &str) -> std::io::Result<()> {
 struct IdleRule {
     timeout: i32,
     actions: String,
+    restore: Option<String>,
     #[serde(default)]
     on_battery: Option<bool>,
 }
@@ -107,7 +108,7 @@ pub fn apply_config(
     let mut map = list.lock().unwrap();
     
     // Cleanup
-    for (_, (_, _, notification)) in map.iter() {
+    for (_, (_, _, _, notification)) in map.iter() {
         notification.destroy();
     }
     map.clear();
@@ -125,7 +126,14 @@ pub fn apply_config(
             ctx.clone(),
         );
 
-        map.insert(ctx.uuid, (rule.actions, rule.on_battery.unwrap_or(false), notification));
+        map.insert(
+            ctx.uuid, (
+                rule.actions,
+                rule.restore,
+                rule.on_battery.unwrap_or(false), 
+                notification
+            )
+        );
     }
 
     info!("Configuration applied with {} rules", map.len());
