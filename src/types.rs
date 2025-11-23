@@ -1,10 +1,10 @@
 use std::{
     collections::HashMap,
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 use tokio::sync::mpsc;
 
-use mlua::Lua;
 use uuid::Uuid;
 use wayland_client::{protocol::wl_seat, QueueHandle};
 use wayland_protocols::ext::idle_notify::v1::client::{
@@ -15,9 +15,9 @@ use crate::wayland::Output;
 
 #[derive(Debug)]
 pub enum Request {
-    LuaReload,
-    LuaMethod(String),
-    Reset,
+    ReloadConfig,
+    RunCommand(String),
+    DbEvent(String), 
     OnBattery(bool),
     Flush,
     Inhibit,
@@ -27,7 +27,6 @@ pub type NotificationListHandle =
     Arc<Mutex<HashMap<Uuid, (String, ext_idle_notification_v1::ExtIdleNotificationV1)>>>;
 
 pub type CallbackListHandle = Arc<Mutex<HashMap<String, String>>>;
-pub type LuaHandle = Arc<Mutex<Lua>>;
 
 #[derive(Debug)]
 pub struct State {
@@ -37,6 +36,6 @@ pub struct State {
     pub(crate) notification_list: NotificationListHandle,
     pub(crate) dbus_handlers: CallbackListHandle,
     pub(crate) tx: mpsc::Sender<Request>,
-    pub(crate) lua: LuaHandle,
     pub(crate) outputs: HashMap<u32, Output>,
+    pub(crate) config_path: PathBuf,
 }

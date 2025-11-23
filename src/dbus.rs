@@ -73,20 +73,20 @@ pub async fn logind_watcher(tx: mpsc::Sender<Request>) -> anyhow::Result<()> {
             tokio::select! {
                 Some(_) = lock_stream.next() => {
                     debug!("Lock signal received");
-                    let _ = tx.send(Request::LuaMethod("Lock".to_string())).await;
+                    let _ = tx.send(Request::DbEvent("Lock".to_string())).await;
                 },
                 Some(_) = unlock_stream.next() => {
                     debug!("Unlock signal received");
-                    let _ = tx.send(Request::LuaMethod("Unlock".to_string())).await;
+                    let _ = tx.send(Request::DbEvent("Unlock".to_string())).await;
                 },
                 Some(signal) = prepare_sleep_stream.next() => {
                     debug!("Prepare for Sleep signal received");
                     match signal.args() {
                         Ok(args) => {
                             if *args.start() {
-                                let _ = tx.send(Request::LuaMethod("PrepareSleep".to_string())).await;
+                                let _ = tx.send(Request::DbEvent("PrepareSleep".to_string())).await;
                             } else {
-                                let _ = tx.send(Request::LuaMethod("Wakeup".to_string())).await;
+                                let _ = tx.send(Request::DbEvent("Wakeup".to_string())).await;
                             }
                         }
                         Err(e) => {

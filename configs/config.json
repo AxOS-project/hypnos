@@ -1,0 +1,10 @@
+[
+    {
+        "timeout": 120,
+        "actions": "loginctl lock-session"
+    },
+    {
+        "timeout": 300,
+        "actions": "systemctl suspend"
+    }
+]
