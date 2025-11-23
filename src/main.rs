@@ -63,6 +63,13 @@ struct IdleRule {
     restore: Option<String>,
     #[serde(default)]
     on_battery: Option<bool>,
+    #[serde(default = "default_true")]
+    enabled: bool,
+}
+
+/// I hate you, serde
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Parser, Debug)]
@@ -117,6 +124,12 @@ pub fn apply_config(
         let ctx = NotificationContext {
             uuid: generate_uuid(),
         };
+
+        if !rule.enabled {
+            debug!("Skipping disabled rule: {}s -> '{}'", rule.timeout, rule.actions);
+            continue;
+        }
+
         debug!("Registering rule: {}s -> '{}' (on_battery: {:?})", rule.timeout, rule.actions, rule.on_battery);
 
         let notification = idle_notifier.get_idle_notification(
