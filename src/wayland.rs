@@ -150,7 +150,15 @@ impl Dispatch<ext_idle_notification_v1::ExtIdleNotificationV1, NotificationConte
         match event {
             ext_idle_notification_v1::Event::Idled => {
                 let map = state.notification_list.lock().unwrap();
-                if let Some((command, _)) = map.get(&ctx.uuid) {
+
+                if let Some((command, req_battery, _)) = map.get(&ctx.uuid) {
+                    let current_bat_state = state.globals.lock().unwrap().on_battery;
+
+                    if *req_battery && !current_bat_state.unwrap_or(false) {
+                        debug!("Skipping idle command '{}' because on AC power", command);
+                        return;
+                    }
+
                     info!("Idle reached, executing: {}", command);
                     let _ = state.tx.try_send(Request::RunCommand(command.clone()));
                 }

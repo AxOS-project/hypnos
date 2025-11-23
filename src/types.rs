@@ -21,12 +21,13 @@ pub enum Request {
 }
 
 pub type NotificationListHandle =
-    Arc<Mutex<HashMap<Uuid, (String, ext_idle_notification_v1::ExtIdleNotificationV1)>>>;
+    Arc<Mutex<HashMap<Uuid, (String, bool, ext_idle_notification_v1::ExtIdleNotificationV1)>>>;
 
 #[derive(Debug, Default)]
 pub struct WaylandGlobals {
     pub seat: Option<wl_seat::WlSeat>,
     pub notifier: Option<ext_idle_notifier_v1::ExtIdleNotifierV1>,
+    pub on_battery: Option<bool>,
 }
 pub type SharedGlobals = Arc<Mutex<WaylandGlobals>>;
 
