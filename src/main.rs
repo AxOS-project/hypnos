@@ -5,11 +5,9 @@ use log::{debug, error, info};
 use serde::Deserialize;
 use std::{
     collections::HashMap,
-    env,
     fs::{self, File},
     io::Write,
     path::{Path, PathBuf},
-    process::Stdio,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -20,19 +18,17 @@ use tokio::{process::Command, sync::mpsc, task::JoinHandle, time::sleep};
 use uuid::Uuid;
 use wayland::NotificationContext;
 use wayland_client::{
-    protocol::{wl_seat, wl_surface::WlSurface},
+    protocol::{wl_surface::WlSurface},
     Connection, EventQueue, QueueHandle,
 };
 use wayland_protocols::{
-    ext::idle_notify::v1::client::{ext_idle_notification_v1, ext_idle_notifier_v1},
     wp::idle_inhibit::zv1::client::{
         zwp_idle_inhibit_manager_v1, zwp_idle_inhibitor_v1::ZwpIdleInhibitorV1,
     },
 };
 
-use crate::types::{CallbackListHandle, NotificationListHandle};
+use crate::types::{NotificationListHandle};
 
-mod color;
 mod config;
 mod dbus;
 mod joystick_handler;
@@ -170,7 +166,6 @@ pub struct WaylandRunner {
     qhandle: QueueHandle<State>,
     tx: mpsc::Sender<Request>,
     notification_list: NotificationListHandle,
-    dbus_handlers: CallbackListHandle,
     config_path: PathBuf,
 }
 
@@ -183,14 +178,12 @@ impl WaylandRunner {
     ) -> Self {
         let map = HashMap::new();
         let notification_list = Arc::new(Mutex::new(map));
-        let dbus_handlers = Arc::new(Mutex::new(HashMap::new()));
 
         Self {
             connection,
             qhandle,
             tx,
             notification_list,
-            dbus_handlers,
             config_path,
         }
     }
@@ -204,9 +197,7 @@ impl WaylandRunner {
             idle_notifier: None,
             qh: self.qhandle.clone(),
             notification_list: self.notification_list.clone(),
-            dbus_handlers: self.dbus_handlers.clone(),
             tx: self.tx.clone(),
-            outputs: HashMap::new(),
             config_path: self.config_path.clone(),
         };
 

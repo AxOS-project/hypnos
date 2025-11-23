@@ -1,4 +1,4 @@
-use log::{debug, info, error};
+use log::{debug, info};
 use uuid::Uuid;
 use wayland_client::{
     protocol::{
@@ -19,17 +19,7 @@ use wayland_protocols_wlr::gamma_control::v1::client::{
     zwlr_gamma_control_manager_v1, zwlr_gamma_control_v1,
 };
 
-use crate::{apply_config, color::Color, types::{State, Request}, INHIBIT_MANAGER, SURFACE};
-
-#[derive(Debug)]
-pub struct Output {
-    reg_name: u32,
-    wl_output: wl_output::WlOutput,
-    name: Option<String>,
-    color: Color,
-    ramp_size: usize,
-    color_changed: bool,
-}
+use crate::{apply_config, types::{State, Request}, INHIBIT_MANAGER, SURFACE};
 
 #[derive(Clone, Debug)]
 pub struct NotificationContext {
@@ -91,18 +81,6 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                     let compositor = registry.bind::<wl_compositor::WlCompositor, _, _>(name, 1, qh, ());
                     let surface = compositor.create_surface(qh, ());
                     *SURFACE.lock().unwrap() = Some(surface);
-                }
-                "wl_output" => {
-                    let wl_output = registry.bind::<wl_output::WlOutput, _, _>(name, 1, qh, ());
-                    let output = Output {
-                        reg_name: name,
-                        wl_output,
-                        name: None,
-                        color: Color::default(),
-                        ramp_size: 0,
-                        color_changed: false,
-                    };
-                    state.outputs.insert(name, output);
                 }
                 _ => {}
             }
