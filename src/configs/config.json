@@ -1,16 +1,20 @@
-[
-    {
-        "timeout": 60,
-        "actions": "brightnessctl -s set 10",
-        "restore": "brightnessctl -r",
-        "on_battery": true
-    },
-    {
-        "timeout": 120,
-        "actions": "loginctl lock-session"
-    },
-    {
-        "timeout": 300,
-        "actions": "systemctl suspend"
-    }
-]
+{
+    "enabled": true,
+    "rules": [
+        {
+            "timeout": 5,
+            "actions": "brightnessctl -s set 10",
+            "restore": "brightnessctl -r",
+            "on_battery": true,
+            "enabled": true
+        },
+        {
+            "timeout": 120,
+            "actions": "loginctl lock-session"
+        },
+        {
+            "timeout": 300,
+            "actions": "systemctl suspend"
+        }
+    ]
+}

@@ -18,8 +18,7 @@ use tokio::{process::Command, sync::mpsc, task::JoinHandle, time::sleep};
 use uuid::Uuid;
 use wayland::NotificationContext;
 use wayland_client::{
-    protocol::{wl_surface::WlSurface},
-    Connection, EventQueue, QueueHandle,
+    Connection, EventQueue, QueueHandle, protocol::wl_surface::WlSurface
 };
 use wayland_protocols::{
     wp::idle_inhibit::zv1::client::{
@@ -57,6 +56,13 @@ fn ensure_config_file_exists(filename: &str) -> std::io::Result<()> {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+struct AppConfig {
+    #[serde(default = "default_true")]
+    enabled: bool,
+    rules: Vec<IdleRule>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 struct IdleRule {
     timeout: i32,
     actions: String,
@@ -83,9 +89,9 @@ fn generate_uuid() -> uuid::Uuid {
     Uuid::new_v4()
 }
 
-fn load_json_config(path: &Path) -> anyhow::Result<Vec<IdleRule>> {
-    let content = fs::read_to_string(path)?;
-    let rules: Vec<IdleRule> = serde_json::from_str(&content)?;
+fn load_json_config(path: &Path) -> anyhow::Result<AppConfig> {
+    let content: String = fs::read_to_string(path)?;
+    let rules: AppConfig = serde_json::from_str(&content)?;
     Ok(rules)
 }
 
@@ -95,7 +101,7 @@ pub fn apply_config(
     list: &NotificationListHandle,
     config_path: &Path,
 ) -> anyhow::Result<()> {
-    let rules = match load_json_config(config_path) {
+    let config = match load_json_config(config_path) {
         Ok(r) => r,
         Err(e) => {
             error!("Failed to parse JSON config: {}", e);
@@ -103,14 +109,22 @@ pub fn apply_config(
         }
     };
 
-    let global_lock = globals.lock().unwrap();
-    if global_lock.notifier.is_none() || global_lock.seat.is_none() {   
-        debug!("Cannot apply config yet: notifier or seat missing");
-        return Ok(());
+    {
+        let mut globals_lock = globals.lock().unwrap();
+        globals_lock.is_paused = !config.enabled;
+
+        let status = if config.enabled { "ENABLED" } else { "DISABLED" };
+        info!("Applying configuration: {}", status);
+
+        if globals_lock.notifier.is_none() || globals_lock.seat.is_none() {   
+            debug!("Cannot apply config yet: notifier or seat missing");
+            return Ok(());
+        }
     }
 
-    let idle_notifier = global_lock.notifier.as_ref().unwrap();
-    let wl_seat = global_lock.seat.as_ref().unwrap();
+    let globals_lock = globals.lock().unwrap();
+    let idle_notifier = globals_lock.notifier.as_ref().unwrap();
+    let wl_seat = globals_lock.seat.as_ref().unwrap();
 
     let mut map = list.lock().unwrap();
     
@@ -120,7 +134,7 @@ pub fn apply_config(
     }
     map.clear();
 
-    for rule in rules {
+    for rule in config.rules {
         let ctx = NotificationContext {
             uuid: generate_uuid(),
         };

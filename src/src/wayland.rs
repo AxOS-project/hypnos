@@ -146,6 +146,11 @@ impl Dispatch<ext_idle_notification_v1::ExtIdleNotificationV1, NotificationConte
         _qh: &QueueHandle<Self>,
     ) {
         debug!("Idle Notification event: {:?} uuid: {:?}", event, ctx.uuid);
+
+        if state.globals.lock().unwrap().is_paused {
+            debug!("System is paused, ignoring idle notification event");
+            return;
+        }
         
         match event {
             ext_idle_notification_v1::Event::Idled => {

@@ -34,22 +34,26 @@ Hypnos uses a JSON configuration file to define idle rules. By default, it looks
 Here is an example configuration file:
 
 ```json
-[
-    {
-        "timeout": 300,
-        "actions": "systemctl suspend",
-        "restore": "echo 'Resuming from suspend'",
-        "on_battery": true,
-        "enabled": true
-    },
-    {
-        "timeout": 600,
-        "actions": "loginctl lock-session",
-        "enabled": true
-    }
-]
+{
+    "enabled": true,
+    "rules": [
+        {
+            "timeout": 5,
+            "actions": "brightnessctl -s set 10",
+            "restore": "brightnessctl -r",
+            "on_battery": true,
+            "enabled": true
+        },
+        {
+            "timeout": 120,
+            "actions": "loginctl lock-session"
+        }
+    ]
+}
 ```
+- `enabled`: If set to false, Hypnos will not execute any rules.
 
+Each rule in the `rules` array has the following fields:
 - `timeout`: The idle time in seconds before the actions are executed.
 - `actions`: The command(s) to execute when the timeout is reached.
 - `restore`: (Optional) The command(s) to execute when user activity is detected after the actions have been executed.

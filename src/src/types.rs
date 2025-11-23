@@ -29,6 +29,7 @@ pub struct WaylandGlobals {
     pub notifier: Option<ext_idle_notifier_v1::ExtIdleNotifierV1>,
     pub on_battery: Option<bool>,
     pub restore_cmd: Option<String>,
+    pub is_paused: bool,
 }
 pub type SharedGlobals = Arc<Mutex<WaylandGlobals>>;
 
