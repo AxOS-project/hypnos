@@ -1,6 +1,6 @@
 pkgname='hypnos'
 pkgver='0.1.0'
-pkgrel='1'
+pkgrel='2'
 pkgdesc='A Wayland idle time based notification and action daemon'
 arch=('x86_64')
 url='https://github.com/axos-project/hypnos'
