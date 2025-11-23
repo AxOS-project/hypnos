@@ -1,5 +1,5 @@
 [package]
-name = "sleepwatcher-rs"
+name = "hypnos"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,25 +9,24 @@ edition = "2021"
 anyhow = "1.0.75"
 bytemuck = "1.18.0"
 clap = { version = "4.4.8", features = ["derive"] }
-env_logger = "0.10.1"
-evdev = { version = "0.12.2", features = ["tokio"] }
-futures = { version = "0.3.29", features = ["compat"] }
-inotify = "0.10.2"
+env_logger = "0.11.8"
+evdev = { version = "0.13.2", features = ["tokio"] }
+futures = { version = "0.3.31", features = ["compat"] }
+inotify = "0.11.0"
 lazy_static = "1.5.0"
 log = "0.4.20"
-mlua = { version = "0.9.1", features = ["async", "luau", "send"] }
-nix = { version = "0.29.0", features = ["fs", "poll", "signal", "time"] }
+mlua = { version = "0.11.4", features = ["async", "luau", "send"] }
 once_cell = "1.18.0"
 parking_lot = "0.12.1"
 shmemfdrs2 = "1.0.0"
-sysinfo = "0.29.10"
+sysinfo = "0.37.2"
 tokio = { version = "1.32.0", features = ["rt", "macros", "process", "rt-multi-thread", "mio", "signal"] }
 tokio-timer = "0.2.13"
-tokio-udev = "0.9.1"
-udev = "0.9.0"
+tokio-udev = "0.10.0"
+udev = "0.9.3"
 uuid = { version = "1.5.0", features = ["fast-rng", "v4"] }
 wayland-client = { version = "0.31.6", features = ["log"] }
 wayland-protocols = { version = "0.32.4", features = ["client", "staging", "unstable"] }
 wayland-protocols-wlr = { version = "0.3.4", features = ["client"] }
-xdg = "2.5.2"
-zbus = { version = "3.14.1", features = ["tokio"] }
+xdg = "3.0.0"
+zbus = { version = "5.12.0", features = ["tokio"] }
