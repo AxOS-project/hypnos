@@ -48,9 +48,15 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                 "wl_seat" => {
                     let wl_seat = registry.bind::<wl_seat::WlSeat, _, _>(name, 1, qh, ());
                     state.wl_seat = Some(wl_seat.clone());
+                    state.globals.lock().unwrap().seat = Some(wl_seat.clone());
                     debug!("wl_seat: {:?}", name);
                     if state.idle_notifier.is_some() {
-                         let _ = apply_config(state, &state.config_path.clone());
+                         let _ = apply_config(
+                            &state.globals,
+                            &state.qh,
+                            &state.notification_list,
+                            &state.config_path
+                         );
                     }
                 }
                 "ext_idle_notifier_v1" => {
@@ -58,9 +64,15 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                         .bind::<ext_idle_notifier_v1::ExtIdleNotifierV1, _, _>(name, 1, qh, ());
 
                     debug!("ext_idle_notifier_v1: {:?}", name);
-                    state.idle_notifier = Some(idle_notifier);
+                    state.idle_notifier = Some(idle_notifier.clone());
+                    state.globals.lock().unwrap().notifier = Some(idle_notifier.clone());
                     if state.wl_seat.is_some() {
-                        let _ = apply_config(state, &state.config_path.clone());
+                        let _ = apply_config(
+                            &state.globals,
+                            &state.qh,
+                            &state.notification_list,
+                            &state.config_path
+                        );
                     }
                 }
                 "xdg_activation_v1" => {

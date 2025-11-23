@@ -23,8 +23,16 @@ pub enum Request {
 pub type NotificationListHandle =
     Arc<Mutex<HashMap<Uuid, (String, ext_idle_notification_v1::ExtIdleNotificationV1)>>>;
 
+#[derive(Debug, Default)]
+pub struct WaylandGlobals {
+    pub seat: Option<wl_seat::WlSeat>,
+    pub notifier: Option<ext_idle_notifier_v1::ExtIdleNotifierV1>,
+}
+pub type SharedGlobals = Arc<Mutex<WaylandGlobals>>;
+
 #[derive(Debug)]
 pub struct State {
+    pub(crate) globals: SharedGlobals,
     pub(crate) wl_seat: Option<wl_seat::WlSeat>,
     pub(crate) qh: QueueHandle<State>,
     pub(crate) idle_notifier: Option<ext_idle_notifier_v1::ExtIdleNotifierV1>,

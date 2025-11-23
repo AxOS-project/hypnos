@@ -27,7 +27,7 @@ use wayland_protocols::{
     },
 };
 
-use crate::types::{NotificationListHandle};
+use crate::types::{NotificationListHandle, SharedGlobals, WaylandGlobals};
 
 mod config;
 mod dbus;
@@ -79,7 +79,12 @@ fn load_json_config(path: &Path) -> anyhow::Result<Vec<IdleRule>> {
     Ok(rules)
 }
 
-pub fn apply_config(state: &mut State, config_path: &Path) -> anyhow::Result<()> {
+pub fn apply_config(
+    globals: &SharedGlobals,
+    qh: &QueueHandle<State>,
+    list: &NotificationListHandle,
+    config_path: &Path,
+) -> anyhow::Result<()> {
     let rules = match load_json_config(config_path) {
         Ok(r) => r,
         Err(e) => {
@@ -88,16 +93,18 @@ pub fn apply_config(state: &mut State, config_path: &Path) -> anyhow::Result<()>
         }
     };
 
-    if state.idle_notifier.is_none() || state.wl_seat.is_none() {
-        debug!("Cannot apply config yet: idle_notifier or wl_seat missing");
+    let global_lock = globals.lock().unwrap();
+    if global_lock.notifier.is_none() || global_lock.seat.is_none() {   
+        debug!("Cannot apply config yet: notifier or seat missing");
         return Ok(());
     }
 
-    let idle_notifier = state.idle_notifier.as_ref().unwrap();
-    let wl_seat = state.wl_seat.as_ref().unwrap();
+    let idle_notifier = global_lock.notifier.as_ref().unwrap();
+    let wl_seat = global_lock.seat.as_ref().unwrap();
 
-    let mut map = state.notification_list.lock().unwrap();
+    let mut map = list.lock().unwrap();
     
+    // Cleanup
     for (_, (_, notification)) in map.iter() {
         notification.destroy();
     }
@@ -112,13 +119,14 @@ pub fn apply_config(state: &mut State, config_path: &Path) -> anyhow::Result<()>
         let notification = idle_notifier.get_idle_notification(
             (rule.timeout * 1000).try_into().unwrap(),
             wl_seat,
-            &state.qh,
+            qh,
             ctx.clone(),
         );
 
         map.insert(ctx.uuid, (rule.actions, notification));
     }
 
+    info!("Configuration applied with {} rules", map.len());
     Ok(())
 }
 
@@ -167,6 +175,7 @@ pub struct WaylandRunner {
     tx: mpsc::Sender<Request>,
     notification_list: NotificationListHandle,
     config_path: PathBuf,
+    globals: SharedGlobals,
 }
 
 impl WaylandRunner {
@@ -175,6 +184,7 @@ impl WaylandRunner {
         qhandle: QueueHandle<State>,
         tx: mpsc::Sender<Request>,
         config_path: PathBuf,
+        globals: SharedGlobals,
     ) -> Self {
         let map = HashMap::new();
         let notification_list = Arc::new(Mutex::new(map));
@@ -185,6 +195,7 @@ impl WaylandRunner {
             tx,
             notification_list,
             config_path,
+            globals,
         }
     }
 
@@ -197,6 +208,7 @@ impl WaylandRunner {
         display.get_registry(&self.qhandle, ());
 
         let mut state = State {
+            globals: self.globals.clone(),
             wl_seat: None,
             idle_notifier: None,
             qh: self.qhandle.clone(),
@@ -216,22 +228,15 @@ impl WaylandRunner {
             match event {
                 Request::ReloadConfig => {
                     debug!("Config reload requested");
-                    // Note: Ideally, we should go through the Wayland thread for thread-safety on Wayland objects,
-                    // but here we are just cleaning up. To properly apply, the simplest way is often to kill/restart the notifications
-                    // in the Wayland thread or via an event loop dispatch.
-                    // Simplification: we just clear everything here (beware of race conditions if idle triggers at the same time)
-                    let mut map = self.notification_list.lock().unwrap();
-                    for (_, (_, notification)) in map.iter() {
-                        notification.destroy();
-                    }
-                    map.clear();
-                    
+                    let _ = apply_config(
+                        &self.globals,
+                        &self.qhandle,
+                        &self.notification_list,
+                        &self.config_path,
+                    );
+
+                    // Little flush to ensure requests are processed
                     let _ = self.connection.flush();
-                    // TODO: To recreate notifications, we would need access to the complete State (seat, notifier).
-                    // The trick here is to trigger something that the dispatch loop will see.
-                    // For now, dynamic full reload without access to State is complex with this architecture.
-                    // `apply_config` is called at init. For reload, we would need to send a message to the wayland thread.
-                    info!("Config cleaned. (Full hot-reload logic needs state access)");
                 }
                 Request::RunCommand(cmd) => {
                     run_command(cmd).await;
@@ -299,7 +304,16 @@ async fn main() -> anyhow::Result<()> {
     let event_queue: EventQueue<State> = connection.new_event_queue();
     let qhandle = event_queue.handle();
 
-    let wayland_runner = WaylandRunner::new(connection.clone(), qhandle.clone(), tx.clone(), config_path);
+    let globals = Arc::new(Mutex::new(WaylandGlobals::default()));
+
+    let wayland_runner = WaylandRunner::new(
+        connection.clone(),
+        qhandle.clone(),
+        tx.clone(),
+        config_path,
+        globals,
+    );
+
     let udev_handler = UdevHandler::new(tx.clone());
 
     let _ = wayland_runner.wayland_run(event_queue).await;
