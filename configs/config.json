@@ -1,5 +1,11 @@
 [
     {
+        "timeout": 60,
+        "actions": "brightnessctl -s set 10",
+        "restore": "brightnessctl -r",
+        "on_battery": true
+    },
+    {
         "timeout": 120,
         "actions": "loginctl lock-session"
     },
