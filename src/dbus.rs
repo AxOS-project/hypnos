@@ -2,14 +2,14 @@ use super::types::Request;
 use futures::stream::StreamExt;
 use log::{debug, error};
 use tokio::sync::mpsc;
-use zbus::dbus_proxy;
+use zbus::proxy;
 
 pub async fn upower_watcher(tx: mpsc::Sender<Request>) -> anyhow::Result<()> {
     let conn = zbus::Connection::system().await?;
-    let proxy = UPowerInterfaceProxy::new(&conn).await?;
+    let upw_proxy = UPowerInterfaceProxy::new(&conn).await?;
 
-    let state = proxy.on_battery().await?;
-    let mut power_stream = proxy.receive_on_battery_changed().await;
+    let state = upw_proxy.on_battery().await?;
+    let mut power_stream = upw_proxy.receive_on_battery_changed().await;
     tx.send(Request::OnBattery(state)).await.unwrap();
 
     tokio::spawn(async move {
@@ -27,35 +27,35 @@ pub async fn upower_watcher(tx: mpsc::Sender<Request>) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "org.freedesktop.UPower",
     default_service = "org.freedesktop.UPower",
     default_path = "/org/freedesktop/UPower"
 )]
 trait UPowerInterface {
-    #[dbus_proxy(property)]
+    #[zbus(property)]
     fn on_battery(&self) -> zbus::Result<bool>;
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "org.freedesktop.login1.Manager",
     default_service = "org.freedesktop.login1",
     default_path = "/org/freedesktop/login1"
 )]
 trait LogindManagerInterface {
-    #[dbus_proxy(signal)]
+    #[zbus(signal)]
     fn prepare_for_sleep(&self, start: bool) -> fdo::Result<()>;
 }
 
-#[dbus_proxy(
+#[proxy(
     interface = "org.freedesktop.login1.Session",
     default_service = "org.freedesktop.login1",
     default_path = "/org/freedesktop/login1"
 )]
 trait LogindSessionInterface {
-    #[dbus_proxy(signal)]
+    #[zbus(signal)]
     fn lock(&self) -> fdo::Result<()>;
-    #[dbus_proxy(signal)]
+    #[zbus(signal)]
     fn unlock(&self) -> fdo::Result<()>;
 }
 

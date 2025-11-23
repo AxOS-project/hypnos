@@ -1,4 +1,4 @@
-use evdev::{Device, InputEventKind};
+use evdev::{Device, EventSummary};
 use log::{debug, info};
 use std::path::Path;
 use tokio::sync::mpsc;
@@ -27,16 +27,16 @@ impl JoystickHandler {
                 ev = event_stream.next_event() => {
                     match ev {
                         Ok(ev) => {
-                            match ev.kind() {
-                                InputEventKind::Key(_key) => {
+                            match ev.destructure() {
+                                EventSummary::Key(_key, _, _) => {
                                     //debug!("Key event: {:?}, value: {}", key, ev.value());
                                     self.tx.send(Request::Inhibit).await.unwrap();
                                 }
                                 // Ignore axis and synchronization events for now. For Axis events
                                 // it's not currently clear how to get absinfo
-                                InputEventKind::AbsAxis(..) => {
+                                EventSummary::AbsoluteAxis(..) => {
                                 }
-                                InputEventKind::Synchronization(..) =>  {}
+                                EventSummary::Synchronization(..) =>  {}
                                 _ => {
                                     debug!("Other event: {:?}", ev);
                                 }

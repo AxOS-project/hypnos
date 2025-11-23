@@ -30,7 +30,7 @@ use wayland_protocols::{
     },
 };
 
-use crate::types::{CallbackListHandle, NotificationListHandle, LuaHandle};
+use crate::types::{CallbackListHandle, NotificationListHandle};
 
 mod color;
 mod config;
