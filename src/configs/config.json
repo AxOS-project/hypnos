@@ -1,20 +1,20 @@
 {
     "enabled": true,
-    "rules": [
-        {
-            "timeout": 5,
+    "rules": {
+        "dim": {
+            "timeout": 60,
             "actions": "brightnessctl -s set 10",
             "restore": "brightnessctl -r",
             "on_battery": true,
             "enabled": true
         },
-        {
+        "lock": {
             "timeout": 120,
             "actions": "loginctl lock-session"
         },
-        {
+        "suspend": {
             "timeout": 300,
             "actions": "systemctl suspend"
         }
-    ]
+    }
 }

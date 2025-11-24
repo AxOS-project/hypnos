@@ -36,29 +36,34 @@ Here is an example configuration file:
 ```json
 {
     "enabled": true,
-    "rules": [
-        {
-            "timeout": 5,
+    "rules": {
+        "dim": {
+            "timeout": 300,
             "actions": "brightnessctl -s set 10",
             "restore": "brightnessctl -r",
-            "on_battery": true,
-            "enabled": true
+            "on_battery": true
         },
-        {
-            "timeout": 120,
-            "actions": "loginctl lock-session"
+        "lock": {
+            "timeout": 600,
+            "actions": "loginctl lock-session",
+            "on_battery": false,
+            "enabled": false
         }
-    ]
+    }
 }
 ```
 - `enabled`: If set to false, Hypnos will not execute any rules.
 
-Each rule in the `rules` array has the following fields:
-- `timeout`: The idle time in seconds before the actions are executed.
-- `actions`: The command(s) to execute when the timeout is reached.
-- `restore`: (Optional) The command(s) to execute when user activity is detected after the actions have been executed.
-- `on_battery`: (Optional) If set to true, the rule will only apply when the system is running on battery power.
-- `enabled`: (Optional) If set to false, the rule will be ignored.
+Each rule in the `rules` object are defined as follows:
+```json
+"name": { // Name of the rule, can be anything
+    "timeout": <number>, // Time in seconds before the action is executed
+    "actions": "<string>", // Command to execute when the timeout is reached
+    "restore": "<string>", // (Optional) Command to execute when user activity is detected again
+    "on_battery": <boolean>, // (Optional) Whether to execute this rule only when on battery power, defaults to false
+    "enabled": <boolean> // (Optional) Whether this rule is enabled, defaults to true
+}
+```
 
 ## Usage
 

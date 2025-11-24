@@ -4,15 +4,9 @@ use inotify::{EventMask, Inotify, WatchMask};
 use log::{debug, error, info};
 use serde::Deserialize;
 use std::{
-    collections::HashMap,
-    fs::{self, File},
-    io::Write,
-    path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
-    time::Duration,
+    collections::HashMap, fs::{self, File}, io::Write, path::{Path, PathBuf}, sync::{
+        Arc, Mutex, atomic::{AtomicBool, Ordering}
+    }, time::Duration
 };
 use tokio::{process::Command, sync::mpsc, task::JoinHandle, time::sleep};
 use uuid::Uuid;
@@ -59,7 +53,7 @@ fn ensure_config_file_exists(filename: &str) -> std::io::Result<()> {
 struct AppConfig {
     #[serde(default = "default_true")]
     enabled: bool,
-    rules: Vec<IdleRule>,
+    rules: HashMap<String, IdleRule>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -134,17 +128,17 @@ pub fn apply_config(
     }
     map.clear();
 
-    for rule in config.rules {
+    for (name, rule) in config.rules {
         let ctx = NotificationContext {
             uuid: generate_uuid(),
         };
 
         if !rule.enabled {
-            debug!("Skipping disabled rule: {}s -> '{}'", rule.timeout, rule.actions);
+            debug!("Skipping disabled rule: '{}'", name);
             continue;
         }
 
-        debug!("Registering rule: {}s -> '{}' (on_battery: {:?})", rule.timeout, rule.actions, rule.on_battery);
+        debug!("Registering rule: {}s -> '{}' (on_battery: {:?})", rule.timeout, name, rule.on_battery);
 
         let notification = idle_notifier.get_idle_notification(
             (rule.timeout * 1000).try_into().unwrap(),
