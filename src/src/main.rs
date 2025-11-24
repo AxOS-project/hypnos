@@ -1,6 +1,6 @@
 use clap::Parser;
 use env_logger::{Builder, Env};
-use inotify::{EventMask, Inotify, WatchMask};
+use inotify::{Inotify, WatchMask};
 use log::{debug, error, info};
 use serde::Deserialize;
 use std::{
@@ -183,16 +183,25 @@ async fn run_command(cmd: String) {
 
 pub async fn filewatcher_run(config_path: &Path, tx: mpsc::Sender<Request>) -> anyhow::Result<()> {
     let mut inotify = Inotify::init().expect("Error while initializing inotify");
-    debug!("Watching {:?}", config_path);
-    inotify.watches().add(config_path, WatchMask::MODIFY).expect("Failed to add watch");
+
+    let parent = config_path.parent().unwrap_or_else(|| Path::new("."));
+    let filename = config_path.file_name().expect("Failed to get file name").to_owned();
+
+    debug!("Watching config file: {:?}", config_path);
+
+    inotify.watches().add(
+        parent, 
+        WatchMask::MODIFY | WatchMask::CLOSE_WRITE | WatchMask::MOVED_TO | WatchMask::CREATE,
+    ).expect("Failed to add watch");
 
     let mut buffer = [0; 1024];
+
     tokio::task::spawn_blocking(move || loop {
         let events = inotify.read_events_blocking(&mut buffer).expect("Failed to read inotify events");
         for event in events {
-            if event.mask.contains(EventMask::MODIFY) && !event.mask.contains(EventMask::ISDIR) {
-                debug!("File modified: {:?}", event.name);
-                tx.blocking_send(Request::ReloadConfig).unwrap();
+            if event.name.map(|n| n == filename).unwrap_or(false) {
+                debug!("Config file changed (event: {:?}", event.mask);
+                let _ = tx.blocking_send(Request::ReloadConfig);
             }
         }
     });
