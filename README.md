@@ -55,7 +55,7 @@ Here is an example configuration file:
 - `enabled`: If set to false, Hypnos will not execute any rules.
 
 Each rule in the `rules` object are defined as follows:
-```json
+```jsonc
 "name": { // Name of the rule, can be anything
     "timeout": <number>, // Time in seconds before the action is executed
     "actions": "<string>", // Command to execute when the timeout is reached
