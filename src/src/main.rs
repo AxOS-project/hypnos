@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use env_logger::{Builder, Env};
 use inotify::{Inotify, WatchMask};
 use log::{debug, error, info};
@@ -28,6 +28,7 @@ mod joystick_handler;
 // mod sunset;
 mod types;
 mod udev_handler;
+mod systemd;
 mod utils;
 mod wayland;
 
@@ -73,10 +74,31 @@ fn default_true() -> bool {
 }
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None, arg_required_else_help = true, about = "A simple and modulable Wayland idle manager.")]
 struct Args {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
     #[arg(short, long, default_value = "config.json")]
     config: String,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    #[command(about = "Run as daemon")]
+    Daemon,
+    #[command(about = "Install the systemd service")]
+    Install,
+    #[command(about = "Enable the systemd service")]
+    Enable,
+    #[command(about = "Disable the systemd service")]
+    Disable,
+    #[command(about = "Start the systemd service")]
+    Start,
+    #[command(about = "Stop the systemd service")]
+    Stop,
+    #[command(about = "Restart the systemd service")]
+    Restart,
 }
 
 fn generate_uuid() -> uuid::Uuid {
@@ -332,12 +354,44 @@ impl WaylandRunner {
 async fn main() -> anyhow::Result<()> {
     Builder::from_env(Env::default().default_filter_or("info")).init();
     let args = Args::parse();
-    
+
+    match args.command.unwrap_or(Commands::Daemon) {
+        Commands::Install => {
+            systemd::install().await?;
+            return Ok(());
+        }
+        Commands::Enable => {
+            systemd::enable().await?;
+            return Ok(());
+        }
+        Commands::Disable => {
+            systemd::disable().await?;
+            return Ok(());
+        }
+        Commands::Start => {
+            systemd::start().await?;
+            return Ok(());
+        }
+        Commands::Stop => {
+            systemd::stop().await?;
+            return Ok(());
+        }
+        Commands::Restart => {
+            systemd::restart().await?;
+            return Ok(());
+        }
+        Commands::Daemon => {
+            run_daemon(args.config).await
+        }
+    }
+}
+
+async fn run_daemon(config_name: String) -> anyhow::Result<()> {
     let _ = ensure_config_file_exists("config.json");
 
     let (tx, mut rx) = mpsc::channel(32);
 
-    let config_path = utils::xdg_config_path(Some(args.config.clone()))?;
+    let config_path = utils::xdg_config_path(Some(config_name))?;
     
     filewatcher_run(&config_path, tx.clone()).await?;
 
