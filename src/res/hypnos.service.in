@@ -3,7 +3,6 @@ Description=Hypnos idle daemon service
 Documentation=https://github.com/axos-project/hypnos
 PartOf=graphical-session.target
 After=graphical-session.target
-ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=simple
