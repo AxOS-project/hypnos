@@ -16,3 +16,11 @@ build() {
 package() {
     install -Dm755 $srcdir/target/release/hypnos "$pkgdir/usr/bin/hypnos"
 }
+
+YELLOW='\e[1;33m'
+NC='\e[0m'
+
+post_upgrade() {
+    echo -e "${YELLOW}>>> IMPORTANT: We recommend updating the Hypnos service file.${NC}"
+    echo -e "${YELLOW}>>> To update your local user service file, please run: hypnos install${NC}"
+}
