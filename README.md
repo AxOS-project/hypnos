@@ -67,19 +67,38 @@ Each rule in the `rules` object are defined as follows:
 
 ## Usage
 
-Run Hypnos with the following command:
+### Daemon mode
+This mode allows hypnos to run while the command is running.
+Run Hypnos as a daemon with the following command:
 
 ```bash
-hypnos
+hypnos daemon
 ```
-
-Wow, how difficult was that, right?
 
 You can also specify a custom configuration file:
 
 ```bash
-hypnos -c /path/to/your/config.json
+hypnos daemon -c /path/to/your/config.json
 ```
+
+ ### Service mode
+Hypnos can run as a systemd service.
+First, install the service:
+```
+hypnos install
+```
+Then, start and enable the service:
+```
+hypnos enable
+hypnos start
+```
+You can check the status of the service with:
+```
+systemctl --user status hypnos.service
+```
+> [!NOTE]
+> As hypnos is made for Sleex, the config file should be at `~/.sleex/hypnos.json`.
+
 
 ## Logging
 
