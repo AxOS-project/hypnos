@@ -4,7 +4,7 @@ use inotify::{Inotify, WatchMask};
 use log::{debug, error, info};
 use serde::Deserialize;
 use std::{
-    collections::HashMap, fs::{self, File}, io::Write, path::{Path, PathBuf}, sync::{
+    collections::HashMap, env::home_dir, format, fs::{self, File}, io::Write, path::{Path, PathBuf}, sync::{
         Arc, Mutex, atomic::{AtomicBool, Ordering}
     }, time::Duration
 };
@@ -41,10 +41,14 @@ lazy_static::lazy_static! {
 }
 static IS_INHIBITED: AtomicBool = AtomicBool::new(false);
 
-fn ensure_config_file_exists(filename: &str) -> std::io::Result<()> {
-    let config_path = utils::xdg_config_path(Some(filename.to_string()))?;
+fn ensure_config_file_exists(config_path: &Path) -> std::io::Result<()> {
     if !config_path.exists() {
-        let mut file = File::create(&config_path)?;
+        if let Some(parent) = config_path.parent() {
+            if !parent.as_os_str().is_empty() {
+                fs::create_dir_all(parent)?;
+            }
+        }
+        let mut file = File::create(config_path)?;
         file.write_all(config::CONFIG_FILE.as_bytes())?;
     }
     Ok(())
@@ -79,8 +83,8 @@ struct Args {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    #[arg(short, long, default_value = "config.json")]
-    config: String,
+    #[arg(short, long)]
+    config: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -115,9 +119,9 @@ pub fn apply_config(
     globals: &SharedGlobals,
     qh: &QueueHandle<State>,
     list: &NotificationListHandle,
-    config_path: &Path,
+    config_path: PathBuf,
 ) -> anyhow::Result<()> {
-    let config = match load_json_config(config_path) {
+    let config = match load_json_config(&config_path) {
         Ok(r) => r,
         Err(e) => {
             error!("Failed to parse JSON config: {}", e);
@@ -203,7 +207,7 @@ async fn run_command(cmd: String) {
     });
 }
 
-pub async fn filewatcher_run(config_path: &Path, tx: mpsc::Sender<Request>) -> anyhow::Result<()> {
+pub async fn filewatcher_run(config_path: PathBuf, tx: mpsc::Sender<Request>) -> anyhow::Result<()> {
     let mut inotify = Inotify::init().expect("Error while initializing inotify");
 
     let parent = config_path.parent().unwrap_or_else(|| Path::new("."));
@@ -294,7 +298,7 @@ impl WaylandRunner {
                         &self.globals,
                         &self.qhandle,
                         &self.notification_list,
-                        &self.config_path,
+                        self.config_path.clone(),
                     );
 
                     // Little flush to ensure requests are processed
@@ -386,14 +390,21 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-async fn run_daemon(config_name: String) -> anyhow::Result<()> {
-    let _ = ensure_config_file_exists("config.json");
-
+async fn run_daemon(config_file_path: Option<String>) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
 
-    let config_path = utils::xdg_config_path(Some(config_name))?;
+    let config_path: PathBuf = if let Some(path) = config_file_path {
+        PathBuf::from(path)
+    } else if utils::is_sleex() {
+        home_dir().unwrap_or_default().join(".sleex").join("hypnos.json")
+    } else {
+        utils::xdg_config_path(Some("config.json".to_string()))?
+    };
+
+    let _ = ensure_config_file_exists(&config_path.clone());
+
     
-    filewatcher_run(&config_path, tx.clone()).await?;
+    filewatcher_run(config_path.clone(), tx.clone()).await?;
 
     let connection = loop {
         match Connection::connect_to_env() {

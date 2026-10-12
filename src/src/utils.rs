@@ -24,3 +24,10 @@ pub fn xdg_config_path(filename: Option<String>) -> std::io::Result<PathBuf> {
         }
     }
 }
+
+pub fn is_sleex() -> bool {
+    std::env::var("XDG_CURRENT_DESKTOP")
+        .unwrap_or_default()
+        .split(':')
+        .any(|de| de.eq_ignore_ascii_case("sleex"))
+}

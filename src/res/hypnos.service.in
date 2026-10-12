@@ -7,7 +7,7 @@ ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=simple
-ExecStart=@BIN_PATH@ -c @HOME@/.sleex/hypnos.json
+ExecStart=@BIN_PATH@ daemon
 Restart=on-failure
 
 [Install]

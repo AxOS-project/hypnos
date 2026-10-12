@@ -55,7 +55,7 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                             &state.globals,
                             &state.qh,
                             &state.notification_list,
-                            &state.config_path
+                            state.config_path.clone()
                          );
                     }
                 }
@@ -71,7 +71,7 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
                             &state.globals,
                             &state.qh,
                             &state.notification_list,
-                            &state.config_path
+                            state.config_path.clone()
                         );
                     }
                 }
