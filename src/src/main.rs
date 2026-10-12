@@ -395,7 +395,12 @@ async fn run_daemon(config_name: String) -> anyhow::Result<()> {
     
     filewatcher_run(&config_path, tx.clone()).await?;
 
-    let connection = Connection::connect_to_env().unwrap();
+    let connection = loop {
+        match Connection::connect_to_env() {
+            Ok(connection) => break connection,
+            Err(_) => sleep(Duration::from_secs(5)).await,
+        }
+    };
     let event_queue: EventQueue<State> = connection.new_event_queue();
     let qhandle = event_queue.handle();
 
